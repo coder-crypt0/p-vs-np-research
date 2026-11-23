@@ -19,15 +19,15 @@ def cycle_block(size, clause):
     return rows
 
 
-def compile_formula(clauses, *, pad_literals=False, weights=None):
-    """Compile width-one through width-three clauses into a signed determinant."""
-    occurrences = defaultdict(list)
-    for i, clause in enumerate(clauses):
-        if not 1 <= len(clause) <= 3 or 0 in clause:
-            raise ValueError("expected one to three nonzero signed literals per clause")
-        for j, literal in enumerate(clause):
-            occurrences[abs(literal)].append((i, j, literal < 0))
+def pair_block(values):
+    """Realize the table in 00, 01, 10, 11 order by deleting ports 0 and 1."""
+    w00, w01, w10, w11 = values
+    return [{2: 1}, {0: -w00, 2: w10}, {0: -w01, 1: -1, 2: w11}]
 
+
+def compile_formula(clauses, *, pad_literals=False, weights=None, pair_weights=None):
+    """Compile width-one through width-three clauses and optional binary factors."""
+    occurrences = defaultdict(list)
     entries = []
     wire_ends = []
     owners = []
@@ -45,15 +45,27 @@ def compile_formula(clauses, *, pad_literals=False, weights=None):
         entries[left][right] = (-selected_weight, wire)
         entries[right][left] = (1, wire)
 
-    clause_starts = [allocate(cycle_block(len(clause), True)) for clause in clauses]
+    for clause in clauses:
+        if not 1 <= len(clause) <= 3 or 0 in clause:
+            raise ValueError("expected one to three nonzero signed literals per clause")
+        start = allocate(cycle_block(len(clause), True))
+        for offset, literal in enumerate(clause):
+            occurrences[abs(literal)].append((start + offset, literal < 0))
+
+    for (first, second), values in (pair_weights or {}).items():
+        if first <= 0 or second <= 0 or first == second:
+            raise ValueError("expected two distinct positive variable identifiers")
+        start = allocate(pair_block(values))
+        occurrences[first].append((start, False))
+        occurrences[second].append((start + 1, False))
+
     for variable, ports in occurrences.items():
         absent, present = (weights or {}).get(variable, (1, 1))
         block = cycle_block(len(ports), False)
         block[0][1 % len(ports)] *= absent
         start = allocate(block)
-        for offset, (clause, port, negate) in enumerate(ports):
+        for offset, (right, negate) in enumerate(ports):
             left = start + offset
-            right = clause_starts[clause] + port
             selected_weight = present if offset == 0 else 1
             if negate or pad_literals:
                 block = [{2: 1}, {2: 1}, {0: -1, 1: -1}] if negate else [

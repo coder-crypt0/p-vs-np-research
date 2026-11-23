@@ -27,6 +27,7 @@ jobs:
           python -B experiments/check_determinant_filter.py
           python -B experiments/check_sign_filter_limits.py
           python -B experiments/check_block_filter.py
+          python -B experiments/check_pair_filter.py
       - name: Install pinned Lean release
         shell: bash
         run: |
