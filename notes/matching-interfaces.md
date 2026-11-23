@@ -1,0 +1,40 @@
+# Limits of local matching interfaces and edge bases
+
+The paired cycle-cover reduction has four endpoints for each pair of crossing edges after splitting vertices into row and column copies. A local replacement using ordinary perfect matching would need to cover all four endpoints externally or cover none externally. The following argument rules out that replacement even with arbitrary real edge costs. A separate obstruction rules out converting the original Boolean factors to even or odd support by choosing an invertible basis on each edge.
+
+## Four-terminal matching connectors
+
+Let $T=\{1,2,3,4\}$ be the terminals of an undirected graph. For $S\subseteq T$, let $c(S)$ be the minimum edge cost of a perfect matching after deleting $S$, with $c(S)=+\infty$ if there is no matching. For each complementary partition $\{S,T\setminus S\}$ with $|S|$ even, consider the cost sum $c(S)+c(T\setminus S)$. If some cost sum is finite, the minimum of the four cost sums is attained at least twice.
+
+To prove this, choose minimum matchings for the two states of a minimizing partition. In their symmetric difference, each terminal has degree one, while any nonterminal with nonzero degree has degree two. The two paths between terminals alternate between the two matchings, as do any cycles. Swap the matching membership of the edges of the path from terminal $1$. Its endpoints change which matching covers them. The new pair belongs to a different complementary partition and has the same total cost. This is an alternating-path exchange for matching signatures. [Kazda, Kolmogorov and Rolínek](https://arxiv.org/abs/1602.03124)
+
+Applying the switch to the empty and full deletion states shows that at least one two-terminal deletion costs at most $(c(\varnothing)+c(T))/2$ whenever both intended states are feasible. In particular, both intended states cannot be optimal while every partial state is worse. With two terminals on each side of a balanced bipartite graph, the two-terminal deletion must remove one terminal from each side.
+
+There is also a bound for the sum $Z(S)$ of matching weights with nonnegative edge weights. Switch along the path from terminal $1$ in every ordered pair of matchings for $\varnothing$ and $T$. This is an injection into pairs for the two-terminal deletions and their complements. Membership in the two original matchings is recovered by switching the same path again, and the product of the matching weights is unchanged. Thus
+
+$$
+Z(\varnothing)Z(T)\ \le\
+Z(12)Z(34)+Z(13)Z(24)+Z(14)Z(23).
+$$
+
+The same injection can start at any complementary partition, with the two outputs ordered by which one deletes terminal $1$. If both intended states have weight one, at least one unwanted state has weight at least $1/\sqrt{3}$. For a balanced bipartite connector, one product on the right vanishes and the bound is $1/\sqrt{2}$. Adding arbitrary auxiliary vertices leaves both arguments intact. Signed matching sums can cancel the unwanted states, as in the permanent construction already recorded in the repository. [Signed permanent gadget](modular-permanent.md)
+
+## Independent Boolean edge bases cannot produce parity support
+
+View the SAT instance as a tensor network. A variable of degree $k$ is the copy tensor $e_0^{\otimes k}+e_1^{\otimes k}$. A ternary clause is $u^{\otimes3}-e_{f_1}\otimes e_{f_2}\otimes e_{f_3}$, where $u=e_0+e_1$ and $f_i$ is the bit that falsifies its $i$th literal. Each pair $u,e_{f_i}$ is independent. On each edge we allow its own invertible $2\times2$ matrix $T_i$ at the variable and the inverse transpose $T_i^{-\mathsf T}$ at the clause, preserving the tensor contraction. We ask if every transformed tensor can be supported on one parity of the sum of its bits. This support condition is necessary for ordinary planar matchgate signatures. [Cai and Gorenstein](https://theoryofcomputing.org/articles/v010a007/) · [Al-Bashabsheh and Mao on holographic transformations](https://arxiv.org/abs/1004.3833)
+
+Over a field of characteristic different from two, support on one parity means that the tensor is an eigenvector of $Z^{\otimes k}$ for $Z=\operatorname{diag}(1,-1)$. Pulling this condition back to the original bases requires product eigenoperators at the variable and clause. Across their shared edge the factors in these operators are $A_i=T_i^{-1}ZT_i$ and $A_i^{\mathsf T}$.
+
+For a tensor with at least three legs of the form $\bigotimes_i a_i+\lambda\bigotimes_i b_i$, assume $\lambda\ne0$ and each pair $a_i,b_i$ is independent. Any invertible product operator preserving its line must preserve or interchange the two directions on every leg. To see this, flatten the tensor across any two legs and the rest. The image on the two legs is the span of $a_i\otimes a_j$ and $b_i\otimes b_j$. Its only rank-one directions are those two, since in their local bases it consists of diagonal matrices. The product operator must permute the two rank-one directions.
+
+At a variable with at least three occurrences this makes each $A_i$ diagonal or antidiagonal in the Boolean basis. If $A_i$ is diagonal, its trace and eigenvalues force it to be $Z$ or $-Z$. The transpose then sends $u$ to a direction different from either $u$ or $e_{f_i}$. If $A_i$ is antidiagonal, its transpose sends $e_{f_i}$ to the other coordinate direction, again different from both permitted directions at the clause. This rules out a shared parity basis even on one edge between such a variable and a ternary clause.
+
+In characteristic two, let $D=\operatorname{diag}(0,1)$. Support on one parity is equivalent to being an eigenvector of the sum of the copies of $D$ acting on individual legs. After pulling this sum back to a copy tensor of degree at least three, every single-bit deviation from $0^k$ or $1^k$ occurs at a different coordinate. Its coefficient comes from exactly one off-diagonal entry, so the pulled-back operators are diagonal. Each has one $0$ and one $1$ on its diagonal. On the clause, apply the same argument in the local bases $u,e_{f_i}$ to its two rank-one terms. A transpose of a diagonal matrix with diagonal $0,1$ in either order sends $u$ to a coordinate vector, so it cannot be diagonal in the clause basis. For a ternary variable in characteristic two, the two copy terms also get distinct eigenvalues from the sum because its degree is odd.
+
+Suppose every variable occurs at least three times and every clause has three literals. Each edge has at least one endpoint whose tensor needs both parities. For a set of $s$ variables there are at least $3s$ incident edges and each neighboring clause receives at most three of them. Hall's theorem therefore gives a matching that saturates all $n$ variables. Its disjoint edges require at least $n$ tensors that need both parities.
+
+In odd characteristic the bound is attained. At each clause take the swap of $u$ and $e_{f_i}$ on every leg. Each swap is conjugate to $Z$, and their product sends the clause tensor to its negative. The edge choices are independent because every edge meets only one clause, so all clauses can have odd support simultaneously. The $n$ variable tensors then need both parities. Splitting each such tensor into its even and odd parts gives $2^n$ choices before any summation or pruning.
+
+Contracting any network of parity-supported tensors leaves a parity-supported tensor on its external edges. Each contracted bit contributes twice to the sum of the local parities. The obstruction therefore also applies to replacements that use arbitrarily many such local tensors inside each original vertex while preserving its single Boolean leg per incidence. Larger edge alphabets and changes that combine several original constraints into one tensor are outside this argument.
+
+The experiment enumerates matching costs and matching sums on 480 small graphs. It also enumerates compatible edge operators directly over three finite fields. The general arguments above use alternating paths and tensor flattening. [Finite checks](../experiments/check_matching_interfaces.py)
