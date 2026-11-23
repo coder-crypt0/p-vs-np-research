@@ -11,10 +11,11 @@ DeepMind's Lean statement is `ComplexityTheory.P_ne_NP : P ≠ NP`. At revision 
 - [Public fleet snapshot and overlap](notes/fleet.md)
 - [One-in-three SAT, parity, and graph matching](notes/parity-matching.md)
 - [Local linear relaxations with a global integer check](notes/local-relaxation.md)
+- [Joint local rational and integer consistency](notes/affine-consistency.md)
 
 ## Reproduce
 
-From the repository root, run the following with Python 3.10+ and Lean 4.33.1. The Python experiment uses NetworkX for weighted matching. The Lean proof imports only the bundled standard library.
+GitHub Actions runs the Python experiments and Lean checks on pushes. To reproduce them locally, run the following from the repository root with Python 3.10+ and Lean 4.33.1.
 
 ```sh
 python -m venv .venv
@@ -25,6 +26,6 @@ lean -DwarningAsError=true proofs/ExactOne.lean
 lean -DwarningAsError=true proofs/LocalGadget.lean
 ```
 
-On Windows use `.venv\Scripts\python.exe` for the virtual environment's interpreter. With this workspace's WSL toolchain, use `wsl -d kali-linux -- ./.tools/lean-4.33.1-linux/bin/lean -DwarningAsError=true proofs/ExactOne.lean`.
+On Windows use `.venv\Scripts\python.exe` for the virtual environment's interpreter.
 
 The Python experiments check finite instances, graphic bases, and local distributions. Lean proves the parity-cost criterion, the 12-variable contradiction, and the Boolean and signed-integer behavior of the local gadgets. The notes give the graph-minor and expansion arguments.
