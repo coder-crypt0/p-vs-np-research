@@ -166,7 +166,7 @@ if __name__ == "__main__":
     ranks = [check_derivative(*test) for test in tests]
     check(any(0 < rank < limit for rank, limit in ranks), "missing a partial-rank case")
     check(any(rank == limit for rank, limit in ranks), "missing a full-rank case")
-    print("Permanent jets: 96 exact comparisons against dense subset evaluation.")
+    print("Permanent jets: 96 exact comparisons against direct permutation sums.")
     print("Fourier derivative ranks (actual, off-block dimension):", ranks)
     print("Assembled cycle derivative rank (actual, off-block dimension):",
           check_cycle_deformation())
