@@ -1,5 +1,6 @@
 """Check the point-mass family and the scope of its evaluation obstruction."""
 
+from collections import Counter
 from fractions import Fraction
 from itertools import product
 from random import Random
@@ -83,6 +84,57 @@ def one_chord_coefficients(clauses):
     return constant, forward, total - forward
 
 
+def scalar_compression_matrix(size):
+    """Return a degree-three matrix whose determinant has a zero constant coefficient."""
+    entries = [{} for _ in range(4 * size)]
+    for i in range(size):
+        u, v, a, b = range(4 * i, 4 * i + 4)
+        following = 4 * ((i + 1) % size)
+        cycle_weight = -2 if i == size - 1 and size % 2 else 2
+        entries[u].update({v: (-1, i), a: (1, None), following: (cycle_weight, None)})
+        entries[v].update({u: (1, i), b: (-1, None), v: (1, None)})
+        entries[a].update({a: (1, None), v: (1, None)})
+        entries[b].update({b: (1, None), u: (1, None)})
+    return entries
+
+
+def evaluate_at_grid(entries, values):
+    matrix = [[0] * len(entries) for _ in entries]
+    for i, row in enumerate(entries):
+        for j, (weight, variable) in row.items():
+            factor = 2
+            if variable is not None:
+                z = values[variable]
+                factor = (4 if weight == -1 else 1) if z == 2 else 2 * z
+            matrix[i][j] = factor * weight
+    return Fraction(determinant(matrix), 1 << len(entries))
+
+
+def recovered_constant(weights):
+    coefficients = Counter({0: 1})
+    for a in weights:
+        following = Counter()
+        for exponent, value in coefficients.items():
+            following[exponent] += 2 * value
+            following[exponent + a] += value
+            following[exponent - a] += value
+        coefficients = following
+    return coefficients[0] - (1 << len(weights))
+
+
+def check_scalar_compression():
+    for size in range(2, 5):
+        entries = scalar_compression_matrix(size)
+        for values in product((1, -1, 2), repeat=size):
+            expected = Fraction(1)
+            for value in values:
+                expected *= 2 + value + Fraction(1, value)
+            check(evaluate_at_grid(entries, values) == expected - (1 << size),
+                  "incorrect scalar-compression determinant")
+    check(recovered_constant((1, 2, 3)) > 0, "collision should change the zero answer")
+    check(recovered_constant((1, 2, 4)) == 0, "separated subset weights should be exact")
+
+
 if __name__ == "__main__":
     evaluations = check_determinant_signs()
     check(one_chord_coefficients([(1, 1, 2)]) == (3, 1, -2), "wrong two-way leakage")
@@ -94,5 +146,7 @@ if __name__ == "__main__":
         check(len(chord_wires(ends)) == 48, "wrong incidence cycle rank")
         check(bridge_filtered_count(entries, ends) == int(not unsatisfiable),
               "bridge filtering failed on the large oracle family")
+    check_scalar_compression()
     print(f"Sign-only filter: {evaluations} exact oracle values and two Laurent examples checked.")
     print("Bridge filtering: both 48-cycle oracle instances solved exactly.")
+    print("Scalar compression: 117 exact grid values and the zero-coefficient collision checked.")
