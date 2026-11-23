@@ -23,7 +23,7 @@ DeepMind's Lean statement is `ComplexityTheory.P_ne_NP : P ≠ NP`. At revision 
 
 ## Reproduce
 
-GitHub Actions runs the Python experiments and Lean checks on pushes. To reproduce them locally, run the following from the repository root with Python 3.10+ and Lean 4.33.1.
+The Python experiments and Lean checks can be run from the repository root with Python 3.10+ and Lean 4.33.1. The GitHub workflow is available for manual runs.
 
 ```sh
 python -m venv .venv
