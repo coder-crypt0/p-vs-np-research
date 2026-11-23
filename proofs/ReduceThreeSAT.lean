@@ -1,3 +1,4 @@
+import ExactOne
 import LocalGadget
 
 namespace IndependentSAT.Reduction
@@ -69,7 +70,7 @@ private theorem exact_flatMap (g : Variable α → Bool) (formula : List (Clause
 
 private theorem zero_from_rows (g : Variable α → Bool) (h : exactAll g zeroRows) :
     g (.constant .zero) = false := by
-  simp only [exactAll, zeroRows, List.forall_mem_cons, List.forall_mem_nil, and_true] at h
+  simp [exactAll, zeroRows] at h
   obtain ⟨h₁, h₂, h₃⟩ := h
   simp only [exact] at h₁ h₂ h₃
   cases hz : g (.constant .zero)
@@ -91,7 +92,7 @@ private theorem or_rows_iff (g : Variable α → Bool) (c : Clause α) :
         (g (.selector c .first)).toNat (g (.selector c .second)).toNat
         (g (.selector c .third)).toNat
         (g (.slack c .first)).toNat (g (.slack c .second)).toNat (g (.slack c .third)).toNat := by
-  simp only [exactAll, orRows, List.forall_mem_cons, List.forall_mem_nil, and_true, exact, OrGadget]
+  simp [exactAll, orRows, exact, OrGadget]
 
 private def choose (x y : Bool) : Slot → Bool
   | .first => x
@@ -138,7 +139,8 @@ private theorem lift_block (a : α → Bool) (c : Clause α) (h : clauseHolds a 
   refine ⟨?_, ?_⟩
   · simp [exactAll, lift_complement]
   · apply (or_rows_iff _ _).2
-    simpa only [lift_opposite, liftAssignment, slotValue] using
+    rw [lift_opposite a c.1, lift_opposite a c.2.1, lift_opposite a c.2.2]
+    simpa only [liftAssignment, slotValue] using
       choose_valid (literalValue a c.1) (literalValue a c.2.1) (literalValue a c.2.2) h
 
 private theorem bool_nat_le_one (x : Bool) : x.toNat ≤ 1 := by
@@ -194,8 +196,43 @@ theorem compile_distinct (formula : List (Clause α)) :
     rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
       simp [distinct, complementRow, opposite]
 
+private def rowList (row : Triple β) : List β := [row.1, row.2.1, row.2.2]
+
+def parityRows (formula : List (Clause α)) : List (List (Variable α)) :=
+  (compile formula).map rowList
+
+private theorem row_count (g : Variable α → Bool) (row : Triple (Variable α)) :
+    ((rowList row).filter g).length =
+      (g row.1).toNat + (g row.2.1).toNat + (g row.2.2).toNat := by
+  cases h₁ : g row.1 <;> cases h₂ : g row.2.1 <;> cases h₃ : g row.2.2 <;>
+    simp [rowList, h₁, h₂, h₃, Bool.toNat]
+
+private theorem exact_count_iff (g : Variable α → Bool) (rows : List (Triple (Variable α))) :
+    exactAll g rows ↔ Exact (countsFor g (rows.map rowList)) := by
+  simp only [exactAll, Exact, countsFor, List.map_map, List.mem_map, Function.comp_def]
+  constructor
+  · intro h _ ⟨row, hr, rfl⟩
+    rw [row_count]
+    exact h row hr
+  · intro h row hr
+    unfold exact
+    rw [← row_count]
+    exact h _ ⟨row, hr, rfl⟩
+
+theorem compile_parity_budget (formula : List (Clause α)) :
+    (∃ a : α → Bool, ∀ c ∈ formula, clauseHolds a c) ↔
+      ∃ g : Variable α → Bool, OddRows (countsFor g (parityRows formula)) ∧
+        (countsFor g (parityRows formula)).sum = 3 + 7 * formula.length := by
+  rw [compile_correct]
+  simp only [exact_count_iff, ← parityRows]
+  have hbudget : (parityRows formula).length = 3 + 7 * formula.length := by
+    simp [parityRows, compile_length]
+  rw [← hbudget]
+  exact sat_iff_parity_at_budget (parityRows formula)
+
 #print axioms compile_correct
 #print axioms compile_length
 #print axioms compile_distinct
+#print axioms compile_parity_budget
 
 end IndependentSAT.Reduction
