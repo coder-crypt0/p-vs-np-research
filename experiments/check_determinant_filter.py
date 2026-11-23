@@ -19,7 +19,7 @@ def cycle_block(size, clause):
     return rows
 
 
-def compile_formula(clauses, *, pad_literals=False):
+def compile_formula(clauses, *, pad_literals=False, weights=None):
     """Compile width-one through width-three clauses into a signed determinant."""
     occurrences = defaultdict(list)
     for i, clause in enumerate(clauses):
@@ -39,26 +39,31 @@ def compile_formula(clauses, *, pad_literals=False):
         owners.extend([start] * len(block))
         return start
 
-    def connect(left, right):
+    def connect(left, right, selected_weight=1):
         wire = len(wire_ends)
         wire_ends.append((owners[left], owners[right]))
-        entries[left][right] = (-1, wire)
+        entries[left][right] = (-selected_weight, wire)
         entries[right][left] = (1, wire)
 
     clause_starts = [allocate(cycle_block(len(clause), True)) for clause in clauses]
-    for ports in occurrences.values():
-        start = allocate(cycle_block(len(ports), False))
+    for variable, ports in occurrences.items():
+        absent, present = (weights or {}).get(variable, (1, 1))
+        block = cycle_block(len(ports), False)
+        block[0][1 % len(ports)] *= absent
+        start = allocate(block)
         for offset, (clause, port, negate) in enumerate(ports):
             left = start + offset
             right = clause_starts[clause] + port
+            selected_weight = present if offset == 0 else 1
             if negate or pad_literals:
                 block = [{2: 1}, {2: 1}, {0: -1, 1: -1}] if negate else [
                     {1: -1}, {0: 1}, {2: 1}
                 ]
                 relay = allocate(block)
-                connect(left, relay)
+                connect(left, relay, selected_weight)
                 left = relay + 1
-            connect(left, right)
+                selected_weight = 1
+            connect(left, right, selected_weight)
     return entries, wire_ends
 
 
@@ -133,18 +138,23 @@ def bridge_filtered_count(entries, wire_ends):
     forest = nx.Graph()
     forest.add_nodes_from(component.values())
     indices = [[] for _ in forest]
+    owner = []
     for start, stop in pairwise([*sorted(component), len(entries)]):
         indices[component[start]].extend(range(start, stop))
+        owner.extend([start] * (stop - start))
 
-    wire_ports = {wire: (row, col) for row, edges in enumerate(entries)
-                  for col, (weight, wire) in edges.items() if wire is not None and weight < 0}
+    wire_ports = {wire: (row, col, -weight) for row, edges in enumerate(entries)
+                  for col, (weight, wire) in edges.items()
+                  if wire is not None and owner[row] == wire_ends[wire][0]}
     bridge_ports = {}
+    bridge_weights = {}
     for _, _, wire in bridges:
         u, v = wire_ends[wire]
         a, b = component[u], component[v]
-        left, right = wire_ports[wire]
+        left, right, selected_weight = wire_ports[wire]
         bridge_ports[a, b] = left
         bridge_ports[b, a] = right
+        bridge_weights[a, b] = bridge_weights[b, a] = selected_weight
         forest.add_edge(a, b)
 
     internal_wires = [[] for _ in forest]
@@ -170,8 +180,12 @@ def bridge_filtered_count(entries, wire_ends):
         parent = nx.dfs_predecessors(forest, root)
         messages = {}
         for part in reversed(list(nx.dfs_preorder_nodes(forest, root))):
-            weights = {bridge_ports[part, child]: messages[child]
-                       for child in forest[part] if parent.get(child) == part}
+            weights = {
+                bridge_ports[part, child]: (
+                    messages[child][0], messages[child][1] * bridge_weights[part, child],
+                )
+                for child in forest[part] if parent.get(child) == part
+            }
             wires = internal_wires[part]
             chords = [wires[i] for i in chord_wires([wire_ends[wire] for wire in wires])]
             keep = count_part(part, None, weights, chords)
@@ -183,13 +197,14 @@ def bridge_filtered_count(entries, wire_ends):
     return prod(root_counts)
 
 
-def direct_count(clauses):
+def direct_count(clauses, weights=None):
     variables = sorted({abs(lit) for clause in clauses for lit in clause})
     total = 0
     for bits in product((0, 1), repeat=len(variables)):
         assignment = dict(zip(variables, bits))
-        total += all(any(assignment[abs(lit)] == int(lit > 0) for lit in clause)
-                     for clause in clauses)
+        if all(any(assignment[abs(lit)] == int(lit > 0) for lit in clause)
+               for clause in clauses):
+            total += prod((weights or {}).get(v, (1, 1))[assignment[v]] for v in variables)
     return total
 
 
