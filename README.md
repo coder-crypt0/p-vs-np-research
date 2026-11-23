@@ -10,14 +10,21 @@ DeepMind's Lean statement is `ComplexityTheory.P_ne_NP : P ≠ NP`. At revision 
 
 - [Public fleet snapshot and overlap](notes/fleet.md)
 - [One-in-three SAT, parity, and graph matching](notes/parity-matching.md)
+- [Local linear relaxations with a global integer check](notes/local-relaxation.md)
 
 ## Reproduce
 
-From the repository root, run the following with Python 3.10+ and Lean 4.33.1 on your path. The Python checks use the standard library. The Lean file imports only the bundled standard library.
+From the repository root, run the following with Python 3.10+ and Lean 4.33.1. The Python experiment uses NetworkX for weighted matching. The Lean proof imports only the bundled standard library.
 
 ```sh
-python experiments/check_parity.py
+python -m venv .venv
+.venv/bin/python -m pip install --no-cache-dir -r requirements.txt
+.venv/bin/python -B experiments/check_parity.py
+.venv/bin/python -B experiments/check_local_relaxation.py
 lean -DwarningAsError=true proofs/ExactOne.lean
+lean -DwarningAsError=true proofs/LocalGadget.lean
 ```
 
-The Python experiment checks finite instances and the explicit obstruction. The Lean file proves the parity-cost criterion for arbitrarily many clauses. The graph-minor argument is written in the research note.
+On Windows use `.venv\Scripts\python.exe` for the virtual environment's interpreter. With this workspace's WSL toolchain, use `wsl -d kali-linux -- ./.tools/lean-4.33.1-linux/bin/lean -DwarningAsError=true proofs/ExactOne.lean`.
+
+The Python experiments check finite instances, graphic bases, and local distributions. Lean proves the parity-cost criterion, the 12-variable contradiction, and the Boolean and signed-integer behavior of the local gadgets. The notes give the graph-minor and expansion arguments.
