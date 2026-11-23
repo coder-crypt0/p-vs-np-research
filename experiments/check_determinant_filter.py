@@ -1,7 +1,8 @@
 """Reduce 3-SAT counting to a constant coefficient of a sparse determinant."""
 
 from collections import Counter, defaultdict
-from itertools import product
+from itertools import pairwise, product
+from math import prod
 from random import Random
 
 import networkx as nx
@@ -118,6 +119,70 @@ def filtered_count(entries, wires):
     return count
 
 
+def bridge_filtered_count(entries, wire_ends):
+    """Filter each component after deleting bridges, then compose its two boundary counts."""
+    if not wire_ends:
+        return filtered_count(entries, ())
+    graph = nx.MultiGraph()
+    for wire, (u, v) in enumerate(wire_ends):
+        graph.add_edge(u, v, key=wire)
+    bridges = [(u, v, next(iter(graph[u][v]))) for u, v in nx.bridges(graph)]
+    graph.remove_edges_from(bridges)
+    component = {vertex: i for i, vertices in enumerate(nx.connected_components(graph))
+                 for vertex in vertices}
+    forest = nx.Graph()
+    forest.add_nodes_from(component.values())
+    indices = [[] for _ in forest]
+    for start, stop in pairwise([*sorted(component), len(entries)]):
+        indices[component[start]].extend(range(start, stop))
+
+    wire_ports = {wire: (row, col) for row, edges in enumerate(entries)
+                  for col, (weight, wire) in edges.items() if wire is not None and weight < 0}
+    bridge_ports = {}
+    for _, _, wire in bridges:
+        u, v = wire_ends[wire]
+        a, b = component[u], component[v]
+        left, right = wire_ports[wire]
+        bridge_ports[a, b] = left
+        bridge_ports[b, a] = right
+        forest.add_edge(a, b)
+
+    internal_wires = [[] for _ in forest]
+    for u, _, wire in graph.edges(keys=True):
+        internal_wires[component[u]].append(wire)
+
+    def count_part(part, deleted, weights, chords):
+        index = {old: new for new, old in enumerate(i for i in indices[part] if i != deleted)}
+        local = []
+        for old, row in index.items():
+            keep, remove = weights.get(old, (1, 0))
+            entries_here = {index[col]: (keep * weight, wire)
+                            for col, (weight, wire) in entries[old].items() if col in index}
+            diagonal = entries_here.get(row, (0, None))[0]
+            if remove:
+                entries_here[row] = (diagonal + remove, None)
+            local.append(entries_here)
+        return filtered_count(local, chords)
+
+    root_counts = []
+    for tree in nx.connected_components(forest):
+        root = min(tree)
+        parent = nx.dfs_predecessors(forest, root)
+        messages = {}
+        for part in reversed(list(nx.dfs_preorder_nodes(forest, root))):
+            weights = {bridge_ports[part, child]: messages[child]
+                       for child in forest[part] if parent.get(child) == part}
+            wires = internal_wires[part]
+            chords = [wires[i] for i in chord_wires([wire_ends[wire] for wire in wires])]
+            keep = count_part(part, None, weights, chords)
+            if part == root:
+                root_counts.append(keep)
+            else:
+                remove = count_part(part, bridge_ports[part, parent[part]], weights, chords)
+                messages[part] = (keep, remove)
+    return prod(root_counts)
+
+
 def direct_count(clauses):
     variables = sorted({abs(lit) for clause in clauses for lit in clause})
     total = 0
@@ -137,6 +202,8 @@ def check_formula(clauses):
     expected = direct_count(clauses)
     if filtered_count(entries, chord_wires(ends)) != expected:
         raise AssertionError(f"chord filtering failed on {clauses}")
+    if bridge_filtered_count(entries, ends) != expected:
+        raise AssertionError(f"bridge filtering failed on {clauses}")
     if len(ends) <= 7 and filtered_count(entries, range(len(ends))) != expected:
         raise AssertionError(f"full filtering failed on {clauses}")
 

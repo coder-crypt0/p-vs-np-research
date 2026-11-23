@@ -34,4 +34,12 @@ This shifts the hard step to extracting a particular coefficient. A single-varia
 
 The finite check compares the full sign filter on smaller formulas and the chord filter on all examples with direct enumeration. It covers empty, unsatisfiable, repeated-literal and mixed-sign inputs. [Implementation and checks](../experiments/check_determinant_filter.py)
 
-For a fixed connected wiring graph, an exact sign-evaluation oracle can require all (2^b) chord signs even to distinguish a unique satisfying assignment from an unsatisfiable formula. [Query lower bound](sign-filter-limits.md)
+For a fixed connected wiring graph, an exact sign-evaluation oracle can require all $2^b$ chord signs even to distinguish a unique satisfying assignment from an unsatisfiable formula. [Query lower bound](sign-filter-limits.md)
+
+## Compute separately across bridges
+
+The circulation condition also gives a way to avoid evaluating the full graph at once. Remove its bridges and contract each remaining connected component to one node. The contracted graph is a forest. A bridge contributes only when its two directions are both selected or both unused, so a child component sends two counts for these two states.
+
+At a parent port $u$ with child counts $w_0,w_1$, replace its row $R_u$ by $w_0 R_u + w_1 e_u^{\mathsf T}$, where the unit row has its one in column $u$. By multilinearity, choosing the first summand retains the port. Choosing the unit row deletes its row and column and contributes the child count for selecting that bridge. These identities hold for every signing internal to the parent component. They sum over arbitrarily many child bridge choices in one determinant. The message sent to the parent comes from applying the local chord filter twice, with its own bridge port present and with it deleted.
+
+For component cycle ranks $b_C$, the algorithm uses at most $2\sum_C 2^{b_C}$ determinant evaluations. This is polynomial if the largest $b_C$ is logarithmic. The total cycle rank can still be linear, as in the connected family with one cycle per component used for the oracle bound. The experiment solves both the unique and unsatisfiable versions with 48 cycles using this decomposition. A single large component still needs a different coefficient extraction method. [Implementation](../experiments/check_determinant_filter.py) · [48-cycle check](../experiments/check_sign_filter_limits.py)

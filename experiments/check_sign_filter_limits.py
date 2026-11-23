@@ -5,7 +5,8 @@ from itertools import product
 from random import Random
 
 from check_determinant_filter import (
-    chord_wires, compile_formula, determinant, direct_count, signed_evaluation,
+    bridge_filtered_count, chord_wires, compile_formula, determinant, direct_count,
+    signed_evaluation,
 )
 
 
@@ -87,4 +88,11 @@ if __name__ == "__main__":
     check(one_chord_coefficients([(1, 1, 2)]) == (3, 1, -2), "wrong two-way leakage")
     check(one_chord_coefficients([(1, 1, 2), (-2,), (-1,)]) == (0, 0, -1),
           "wrong unsatisfiable Laurent polynomial")
+    for unsatisfiable in (False, True):
+        formula = make_formula((-1, 1) * 24, unsatisfiable)
+        entries, ends = compile_formula(formula, pad_literals=True)
+        check(len(chord_wires(ends)) == 48, "wrong incidence cycle rank")
+        check(bridge_filtered_count(entries, ends) == int(not unsatisfiable),
+              "bridge filtering failed on the large oracle family")
     print(f"Sign-only filter: {evaluations} exact oracle values and two Laurent examples checked.")
+    print("Bridge filtering: both 48-cycle oracle instances solved exactly.")
