@@ -27,6 +27,7 @@ def pair_block(values):
 
 def compile_formula(
     clauses, *, pad_literals=False, weights=None, pair_weights=None, port_factors=(),
+    clause_block=None,
 ):
     """Compile clauses and optional local factor matrices into a signed determinant."""
     occurrences = defaultdict(list)
@@ -50,7 +51,8 @@ def compile_formula(
     for clause in clauses:
         if not 1 <= len(clause) <= 3 or 0 in clause:
             raise ValueError("expected one to three nonzero signed literals per clause")
-        start = allocate(cycle_block(len(clause), True))
+        block = cycle_block(len(clause), True) if clause_block is None else clause_block(len(clause))
+        start = allocate(block)
         for offset, literal in enumerate(clause):
             occurrences[abs(literal)].append((start + offset, literal < 0))
 

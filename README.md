@@ -21,6 +21,7 @@ DeepMind's Lean statement is `ComplexityTheory.P_ne_NP : P ≠ NP`. At revision 
 - [Counting across articulation variables](notes/block-filter.md)
 - [Counting across two-variable separators](notes/pair-filter.md)
 - [Modular determinant factors for three-variable separators](notes/modular-ports.md)
+- [SAT as a paired cycle-cover problem](notes/paired-cycle-covers.md)
 
 ## Reproduce
 
@@ -39,6 +40,7 @@ python -m venv .venv
 .venv/bin/python -B experiments/check_block_filter.py
 .venv/bin/python -B experiments/check_pair_filter.py
 .venv/bin/python -B experiments/check_modular_ports.py
+.venv/bin/python -B experiments/check_paired_cycle_covers.py
 mkdir -p .lake
 lean -DwarningAsError=true --root=proofs -o .lake/ExactOne.olean proofs/ExactOne.lean
 lean -DwarningAsError=true --root=proofs -o .lake/LocalGadget.olean proofs/LocalGadget.lean
