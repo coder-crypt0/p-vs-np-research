@@ -17,6 +17,7 @@ DeepMind's Lean statement is `ComplexityTheory.P_ne_NP : P ≠ NP`. At revision 
 - [Taylor coefficients of structured permanents](notes/permanent-interpolation.md)
 - [Parity and valuation of permanent gadgets](notes/modular-permanent.md)
 - [Exact SAT counts from a sparse determinant coefficient](notes/determinant-filter.md)
+- [Limits of determinant sign queries](notes/sign-filter-limits.md)
 
 ## Reproduce
 
@@ -31,6 +32,7 @@ python -m venv .venv
 .venv/bin/python -B experiments/check_permanent_jets.py
 .venv/bin/python -B experiments/check_paired_permanent.py
 .venv/bin/python -B experiments/check_determinant_filter.py
+.venv/bin/python -B experiments/check_sign_filter_limits.py
 mkdir -p .lake
 lean -DwarningAsError=true --root=proofs -o .lake/ExactOne.olean proofs/ExactOne.lean
 lean -DwarningAsError=true --root=proofs -o .lake/LocalGadget.olean proofs/LocalGadget.lean

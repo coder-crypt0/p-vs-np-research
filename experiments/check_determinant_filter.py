@@ -9,17 +9,21 @@ import networkx as nx
 
 def cycle_block(size, clause):
     """A signed cycle, with a unit diagonal when it represents OR."""
+    if size == 1 and clause:
+        return [{}]
     rows = [{i: 1} if clause else {} for i in range(size)]
+    cycle_sign = (-1) ** (size if clause else size - 1)
     for i, row in enumerate(rows):
-        sign = -1 if i == size - 1 and (size - int(not clause)) % 2 else 1
-        row[(i + 1) % size] = sign
+        row[(i + 1) % size] = cycle_sign if i == size - 1 else 1
     return rows
 
 
-def compile_formula(clauses):
-    """Use nonzero signed entries (column, weight, wire), with the wire exponents opposite."""
+def compile_formula(clauses, *, pad_literals=False):
+    """Compile width-one through width-three clauses into a signed determinant."""
     occurrences = defaultdict(list)
     for i, clause in enumerate(clauses):
+        if not 1 <= len(clause) <= 3 or 0 in clause:
+            raise ValueError("expected one to three nonzero signed literals per clause")
         for j, literal in enumerate(clause):
             occurrences[abs(literal)].append((i, j, literal < 0))
 
@@ -40,16 +44,19 @@ def compile_formula(clauses):
         entries[left][right] = (-1, wire)
         entries[right][left] = (1, wire)
 
-    clause_starts = [allocate(cycle_block(3, True)) for clause in clauses]
+    clause_starts = [allocate(cycle_block(len(clause), True)) for clause in clauses]
     for ports in occurrences.values():
         start = allocate(cycle_block(len(ports), False))
         for offset, (clause, port, negate) in enumerate(ports):
             left = start + offset
             right = clause_starts[clause] + port
-            if negate:
-                flip = allocate([{2: 1}, {2: 1}, {0: -1, 1: -1}])
-                connect(left, flip)
-                left = flip + 1
+            if negate or pad_literals:
+                block = [{2: 1}, {2: 1}, {0: -1, 1: -1}] if negate else [
+                    {1: -1}, {0: 1}, {2: 1}
+                ]
+                relay = allocate(block)
+                connect(left, relay)
+                left = relay + 1
             connect(left, right)
     return entries, wire_ends
 
@@ -92,17 +99,19 @@ def chord_wires(wire_ends):
     return chords
 
 
+def signed_evaluation(entries, signs):
+    matrix = [[0] * len(entries) for _ in entries]
+    for i, row in enumerate(entries):
+        for j, (weight, wire) in row.items():
+            # The two Laurent exponents have identical values at signs.
+            matrix[i][j] = weight * signs.get(wire, 1)
+    return determinant(matrix)
+
+
 def filtered_count(entries, wires):
     """Average determinant evaluations on signs for the specified wires."""
-    total = 0
-    for values in product((-1, 1), repeat=len(wires)):
-        signs = dict(zip(wires, values))
-        matrix = [[0] * len(entries) for _ in entries]
-        for i, row in enumerate(entries):
-            for j, (weight, wire) in row.items():
-                # The two Laurent exponents have identical values at signs.
-                matrix[i][j] = weight * signs.get(wire, 1)
-        total += determinant(matrix)
+    total = sum(signed_evaluation(entries, dict(zip(wires, values)))
+                for values in product((-1, 1), repeat=len(wires)))
     count, remainder = divmod(total, 2 ** len(wires))
     if remainder:
         raise ArithmeticError("the coefficient must be integral")
@@ -135,7 +144,8 @@ def check_formula(clauses):
 if __name__ == "__main__":
     examples = [(), ((1, 2, 3),), ((1, 1, 1), (-1, -1, -1)),
                 ((1, -1, 2), (1, -2, 1)), ((1, 2, 3), (1, 2, 3)),
-                ((-3, -4, 1), (-2, -3, 1), (1, 2, 3))]
+                ((-3, -4, 1), (-2, -3, 1), (1, 2, 3)),
+                ((-1,), (1, 2), (-2, 3)), ((1,), (-1,))]
     random = Random(91971)
     literals = [-4, -3, -2, -1, 1, 2, 3, 4]
     for _ in range(70):
