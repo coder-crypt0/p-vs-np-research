@@ -37,5 +37,6 @@ jobs:
       - name: Check Lean proofs
         run: |
           lean -DwarningAsError=true proofs/ExactOne.lean
-          lean -DwarningAsError=true proofs/LocalGadget.lean
+          lean -DwarningAsError=true --root=proofs -o "$RUNNER_TEMP/LocalGadget.olean" proofs/LocalGadget.lean
           lean -DwarningAsError=true proofs/Cographic.lean
+          LEAN_PATH="$RUNNER_TEMP" lean -DwarningAsError=true --root=proofs proofs/ReduceThreeSAT.lean
