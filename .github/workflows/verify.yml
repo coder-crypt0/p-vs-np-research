@@ -21,11 +21,18 @@ jobs:
           python -m pip install --no-cache-dir -r requirements.txt
           python -B experiments/check_parity.py
           python -B experiments/check_local_relaxation.py
-      - uses: leanprover/lean-action@ba3fdfe5c4476c925da13bf11a005ddb47e47aee # v1
-        with:
-          auto-config: 'false'
-          use-github-cache: 'false'
-          use-mathlib-cache: 'false'
+      - name: Install pinned Lean release
+        shell: bash
+        run: |
+          toolchain=$(cat lean-toolchain)
+          version=${toolchain#leanprover/lean4:v}
+          release="lean-$version-linux"
+          archive="$RUNNER_TEMP/$release.tar.zst"
+          curl --fail --location --retry 3 --output "$archive" \
+            "https://github.com/leanprover/lean4/releases/download/v$version/$release.tar.zst"
+          echo "890afd185370f85666025b883914ab4f4b339136f8c96167b69cfb62aecaf235  $archive" | sha256sum --check
+          tar --zstd -xf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/$release/bin" >> "$GITHUB_PATH"
       - name: Check Lean proofs
         run: |
           lean -DwarningAsError=true proofs/ExactOne.lean
