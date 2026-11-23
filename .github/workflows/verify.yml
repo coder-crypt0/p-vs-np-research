@@ -21,6 +21,7 @@ jobs:
           python -m pip install --no-cache-dir -r requirements.txt
           python -B experiments/check_parity.py
           python -B experiments/check_local_relaxation.py
+          python -B experiments/check_cographic.py
       - name: Install pinned Lean release
         shell: bash
         run: |
@@ -37,3 +38,4 @@ jobs:
         run: |
           lean -DwarningAsError=true proofs/ExactOne.lean
           lean -DwarningAsError=true proofs/LocalGadget.lean
+          lean -DwarningAsError=true proofs/Cographic.lean
