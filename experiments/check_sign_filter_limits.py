@@ -135,6 +135,22 @@ def check_scalar_compression():
     check(recovered_constant((1, 2, 4)) == 0, "separated subset weights should be exact")
 
 
+def check_monomial_matrices():
+    for exponent in (-1, 0, 1):
+        entries = [{1: (-1, 0)}, {0: (1, 0)}, {}]
+        if exponent == 0:
+            entries[2][2] = (1, None)
+        elif exponent == 1:
+            entries[1][2] = (-1, None)
+            entries[2][0] = (1, None)
+        else:
+            entries[0][2] = (1, None)
+            entries[2][1] = (1, None)
+        for value in (1, -1, 2):
+            check(evaluate_at_grid(entries, (value,)) == Fraction(value) ** exponent,
+                  "wrong Laurent monomial")
+
+
 if __name__ == "__main__":
     evaluations = check_determinant_signs()
     check(one_chord_coefficients([(1, 1, 2)]) == (3, 1, -2), "wrong two-way leakage")
@@ -147,6 +163,7 @@ if __name__ == "__main__":
         check(bridge_filtered_count(entries, ends) == int(not unsatisfiable),
               "bridge filtering failed on the large oracle family")
     check_scalar_compression()
+    check_monomial_matrices()
     print(f"Sign-only filter: {evaluations} exact oracle values and two Laurent examples checked.")
     print("Bridge filtering: both 48-cycle oracle instances solved exactly.")
-    print("Scalar compression: 117 exact grid values and the zero-coefficient collision checked.")
+    print("Scalar compression: 126 exact grid values and the zero-coefficient collision checked.")
