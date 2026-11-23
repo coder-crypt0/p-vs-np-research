@@ -1,0 +1,12 @@
+.tools/
+.lake/
+*.olean
+*.ilean
+__pycache__/
+.venv/
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+MOONLIGHT.md
