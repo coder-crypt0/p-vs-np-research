@@ -23,6 +23,7 @@ jobs:
           python -B experiments/check_local_relaxation.py
           python -B experiments/check_cographic.py
           python -B experiments/check_permanent_jets.py
+          python -B experiments/check_paired_permanent.py
       - name: Install pinned Lean release
         shell: bash
         run: |
