@@ -13,6 +13,7 @@ DeepMind's Lean statement is `ComplexityTheory.P_ne_NP : P ≠ NP`. At revision 
 - [Local linear relaxations with a global integer check](notes/local-relaxation.md)
 - [Joint local rational and integer consistency](notes/affine-consistency.md)
 - [Exact-one SAT on graph cuts](notes/cographic.md)
+- [Lean reduction from 3-SAT to the parity budget](notes/formal-reduction.md)
 
 ## Reproduce
 
@@ -24,9 +25,11 @@ python -m venv .venv
 .venv/bin/python -B experiments/check_parity.py
 .venv/bin/python -B experiments/check_local_relaxation.py
 .venv/bin/python -B experiments/check_cographic.py
-lean -DwarningAsError=true proofs/ExactOne.lean
-lean -DwarningAsError=true proofs/LocalGadget.lean
+mkdir -p .lake
+lean -DwarningAsError=true --root=proofs -o .lake/ExactOne.olean proofs/ExactOne.lean
+lean -DwarningAsError=true --root=proofs -o .lake/LocalGadget.olean proofs/LocalGadget.lean
 lean -DwarningAsError=true proofs/Cographic.lean
+LEAN_PATH=.lake lean -DwarningAsError=true --root=proofs proofs/ReduceThreeSAT.lean
 ```
 
 On Windows use `.venv\Scripts\python.exe` for the virtual environment's interpreter.

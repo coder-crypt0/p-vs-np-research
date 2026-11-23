@@ -211,8 +211,9 @@ private theorem exact_count_iff (g : Variable α → Bool) (rows : List (Triple 
     exactAll g rows ↔ Exact (countsFor g (rows.map rowList)) := by
   simp only [exactAll, Exact, countsFor, List.map_map, List.mem_map, Function.comp_def]
   constructor
-  · intro h _ ⟨row, hr, rfl⟩
-    rw [row_count]
+  · intro h count hmem
+    obtain ⟨row, hr, heq⟩ := hmem
+    rw [← heq, row_count]
     exact h row hr
   · intro h row hr
     unfold exact
@@ -224,7 +225,7 @@ theorem compile_parity_budget (formula : List (Clause α)) :
       ∃ g : Variable α → Bool, OddRows (countsFor g (parityRows formula)) ∧
         (countsFor g (parityRows formula)).sum = 3 + 7 * formula.length := by
   rw [compile_correct]
-  simp only [exact_count_iff, ← parityRows]
+  simp only [exact_count_iff]
   have hbudget : (parityRows formula).length = 3 + 7 * formula.length := by
     simp [parityRows, compile_length]
   rw [← hbudget]
