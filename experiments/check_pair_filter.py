@@ -33,9 +33,9 @@ def incidence_rank(scopes):
     return wires - len(scopes) - len(variables) + components
 
 
-def find_split(scopes, max_side_rank):
+def find_split(scopes, boundary_size, max_side_rank):
     graph = primal_graph(scopes)
-    for boundary in combinations(sorted(graph), 2):
+    for boundary in combinations(sorted(graph), boundary_size):
         interior = graph.subgraph(set(graph).difference(boundary))
         components = list(nx.connected_components(interior))
         if len(components) < 2:
@@ -53,30 +53,35 @@ def weighted_count(clauses, pairs, pins=None):
     return filtered_count(entries, chord_wires(ends))
 
 
-def pair_filtered_count(clauses, max_side_rank=2):
+def separator_filtered_count(clauses, boundary_size, max_side_rank, count):
+    """Eliminate one low-rank component at a time and count the remaining core."""
     clauses = list(clauses)
     if any(not 1 <= len(c) <= 3 or 0 in c for c in clauses):
         raise ValueError("expected one to three nonzero signed literals per clause")
-    pairs = {}
+    assignments = tuple(product((0, 1), repeat=boundary_size))
+    tables = {}
     while True:
-        scopes = [tuple(map(abs, clause)) for clause in clauses] + list(pairs)
-        split = find_split(scopes, max_side_rank)
+        scopes = [tuple(map(abs, clause)) for clause in clauses] + list(tables)
+        split = find_split(scopes, boundary_size, max_side_rank)
         if split is None:
-            return weighted_count(clauses, pairs)
+            return count(clauses, tables)
         boundary, selected = split
         local_clauses = [clause for i, clause in enumerate(clauses) if i in selected]
-        local_pairs = {pair: values for i, (pair, values) in enumerate(pairs.items(), len(clauses))
-                       if i in selected}
-        table = [weighted_count(local_clauses, local_pairs, dict(zip(boundary, bits)))
-                 for bits in ASSIGNMENTS]
+        local_tables = {scope: values for i, (scope, values) in enumerate(tables.items(), len(clauses))
+                        if i in selected}
+        table = [count(local_clauses, local_tables, dict(zip(boundary, bits))) for bits in assignments]
         if not any(table):
             return 0
         clauses = [clause for i, clause in enumerate(clauses) if i not in selected]
-        for pair in local_pairs:
-            del pairs[pair]
-        pairs[boundary] = tuple(a * b for a, b in zip(
-            pairs.get(boundary, (1, 1, 1, 1)), table,
+        for scope in local_tables:
+            del tables[scope]
+        tables[boundary] = tuple(a * b for a, b in zip(
+            tables.get(boundary, (1,) * len(assignments)), table,
         ))
+
+
+def pair_filtered_count(clauses, max_side_rank=2):
+    return separator_filtered_count(clauses, 2, max_side_rank, weighted_count)
 
 
 def check_pair_blocks():

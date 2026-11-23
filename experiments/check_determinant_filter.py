@@ -1,7 +1,7 @@
 """Reduce 3-SAT counting to a constant coefficient of a sparse determinant."""
 
 from collections import Counter, defaultdict
-from itertools import pairwise, product
+from itertools import chain, pairwise, product
 from math import prod
 from random import Random
 
@@ -25,8 +25,10 @@ def pair_block(values):
     return [{2: 1}, {0: -w00, 2: w10}, {0: -w01, 1: -1, 2: w11}]
 
 
-def compile_formula(clauses, *, pad_literals=False, weights=None, pair_weights=None):
-    """Compile width-one through width-three clauses and optional binary factors."""
+def compile_formula(
+    clauses, *, pad_literals=False, weights=None, pair_weights=None, port_factors=(),
+):
+    """Compile clauses and optional local factor matrices into a signed determinant."""
     occurrences = defaultdict(list)
     entries = []
     wire_ends = []
@@ -52,12 +54,17 @@ def compile_formula(clauses, *, pad_literals=False, weights=None, pair_weights=N
         for offset, literal in enumerate(clause):
             occurrences[abs(literal)].append((start + offset, literal < 0))
 
-    for (first, second), values in (pair_weights or {}).items():
+    for first, second in pair_weights or {}:
         if first <= 0 or second <= 0 or first == second:
             raise ValueError("expected two distinct positive variable identifiers")
-        start = allocate(pair_block(values))
-        occurrences[first].append((start, False))
-        occurrences[second].append((start + 1, False))
+    binary_factors = ((pair, pair_block(values)) for pair, values in (pair_weights or {}).items())
+    for literals, block in chain(binary_factors, port_factors):
+        variables = set(map(abs, literals))
+        if not 1 <= len(literals) <= len(block) or 0 in variables or len(variables) != len(literals):
+            raise ValueError("expected distinct nonzero port literals and one row per port")
+        start = allocate(block)
+        for offset, literal in enumerate(literals):
+            occurrences[abs(literal)].append((start + offset, literal < 0))
 
     for variable, ports in occurrences.items():
         absent, present = (weights or {}).get(variable, (1, 1))
