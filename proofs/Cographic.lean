@@ -29,8 +29,8 @@ theorem diamond_iff (a b : Bool) :
   · intro h
     subst b
     cases a
-    · exact ⟨true, false, by decide⟩
-    · exact ⟨false, false, by decide⟩
+    · exact ⟨true, false, ⟨rfl, rfl⟩⟩
+    · exact ⟨false, false, ⟨rfl, rfl⟩⟩
 
 #print axioms split_triangle_iff
 #print axioms apex_triangle_iff
